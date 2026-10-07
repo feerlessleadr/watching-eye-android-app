@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:key="emby_server_url"
+        android:title="Emby Server URL"
+        android:summary="e.g. http://192.168.1.10:8096"
+        android:defaultValue="" />
+    <EditTextPreference
+        android:key="emby_api_key"
+        android:title="Emby API Key"
+        android:defaultValue="" />
+    <EditTextPreference
+        android:key="watchingeye_api_key"
+        android:title="WatchingEye API Key"
+        android:defaultValue="" />
+</PreferenceScreen>
