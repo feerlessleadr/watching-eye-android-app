@@ -33,12 +33,6 @@
             android:exported="false"
             android:parentActivityName="com.example.watchingeye.MainActivity" />
 
-        <activity
-            android:name="com.example.watchingeye.WatchingEyeUsersActivity"
-            android:label="Watching Eye Users"
-            android:exported="false"
-            android:parentActivityName="com.example.watchingeye.MainActivity" />
-
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:exported="false"

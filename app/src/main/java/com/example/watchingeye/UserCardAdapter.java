@@ -20,6 +20,9 @@ import com.bumptech.glide.load.model.GlideUrl;
 import com.bumptech.glide.load.model.LazyHeaders;
 import com.bumptech.glide.load.resource.bitmap.CircleCrop;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 public class UserCardAdapter extends ListAdapter<UserCardInfo, UserCardAdapter.CardViewHolder> {
@@ -157,25 +160,28 @@ public class UserCardAdapter extends ListAdapter<UserCardInfo, UserCardAdapter.C
             LimitedUserStatus status = card.getUserStatus();
             SessionInfo session = card.getSessionInfo();
 
-            userNameTextView.setText(status.getUsername() != null ? status.getUsername() : "Unknown");
+            String name = status.getUsername() != null ? status.getUsername() : "Unknown";
+            userNameTextView.setText(status.isEnabled() ? name : name + " (limit disabled)");
 
             long usedSec = (long) status.getSecondsWatchedDaily();
-            long allowedSec = status.getEffectiveAllowedSecondsDaily();
             long usedMin = TimeUnit.SECONDS.toMinutes(usedSec);
-            long allowedMin = TimeUnit.SECONDS.toMinutes(allowedSec);
-            if (allowedMin < status.getDailyLimitMinutes()) {
-                allowedMin = status.getDailyLimitMinutes();
+            long allowedMin = TimeUnit.SECONDS.toMinutes(status.getEffectiveAllowedSecondsDaily());
+            if (status.getEffectiveDailyLimitMinutes() <= 0) {
+                dailyLimitTextView.setText("Daily time used: " + formatMin(usedMin) + " (no daily limit)");
+            } else {
+                dailyLimitTextView.setText(
+                        "Daily time limit used: " + formatMin(usedMin) + " / " + formatMin(allowedMin)
+                );
             }
-            dailyLimitTextView.setText(
-                    "Daily time limit used: " + formatMin(usedMin) + " / " + formatMin(allowedMin)
-            );
             dailyLimitTextView.setTextColor(0xFFB0B0B0);
 
-            String timeout = status.getTimeOutUntil();
-            boolean hasTimeout = timeout != null && !timeout.isEmpty() && !timeout.startsWith("0001-01-01");
+            // Show a time-out only while it is still active, in the phone's local time.
+            Instant timeoutEnd = TimeOutFormat.activeEnd(status.getTimeOutUntil(), Instant.now());
+            boolean hasTimeout = timeoutEnd != null;
             if (hasTimeout) {
                 timeoutStatusTextView.setVisibility(View.VISIBLE);
-                timeoutStatusTextView.setText("Timed out until " + timeout);
+                timeoutStatusTextView.setText("Timed out until "
+                        + TimeOutFormat.describe(timeoutEnd, ZoneId.systemDefault(), Locale.getDefault()));
                 clearTimeoutButton.setVisibility(View.VISIBLE);
             } else {
                 timeoutStatusTextView.setVisibility(View.GONE);
@@ -252,7 +258,9 @@ public class UserCardAdapter extends ListAdapter<UserCardInfo, UserCardAdapter.C
                 String text = editText.getText() != null ? editText.getText().toString().trim() : "";
                 if (text.isEmpty()) return defaultMinutes;
                 int value = Integer.parseInt(text);
-                return value > 0 ? value : defaultMinutes;
+                if (value <= 0) return defaultMinutes;
+                // The plugin accepts at most 43200 minutes (30 days) per request.
+                return Math.min(value, MainViewModel.MAX_MINUTES);
             } catch (NumberFormatException e) {
                 return defaultMinutes;
             }

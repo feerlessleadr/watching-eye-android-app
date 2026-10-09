@@ -95,6 +95,13 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
             return;
         }
 
+        if (serverUrl.toLowerCase(java.util.Locale.ROOT).startsWith("http://")) {
+            // This app does not allow plain-HTTP connections (usesCleartextTraffic=false), so the requests below would fail.
+            Toast.makeText(this,
+                    "This app only allows secure connections. Use an https:// address for your Emby server in Settings.",
+                    Toast.LENGTH_LONG).show();
+        }
+
         viewModel.setCredentials(serverUrl, embyKey, weKey);
         adapter.setServerInfo(serverUrl, embyKey);
         viewModel.stopUpdates();

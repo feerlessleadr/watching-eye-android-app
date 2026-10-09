@@ -49,6 +49,14 @@ public class LimitedUserStatus {
     @SerializedName("TimeOutUntil")
     private String timeOutUntil;
 
+    /** Today's daily limit after per-day overrides (newer plugin versions only; null from an older plugin). */
+    @SerializedName("EffectiveDailyLimitMinutes")
+    private Integer effectiveDailyLimitMinutes;
+
+    /** False when the user's limit is switched off on the plugin page (newer plugin versions only). */
+    @SerializedName("IsEnabled")
+    private Boolean enabled;
+
     public LimitedUserStatus() {}
 
     public String getUserId() { return userId; }
@@ -67,8 +75,22 @@ public class LimitedUserStatus {
     public double getCreditSecondsYearly() { return creditSecondsYearly; }
     public String getTimeOutUntil() { return timeOutUntil; }
 
-    /** WebUI-style allowed daily seconds = limit minutes * 60 + credit */
+    /** Today's daily limit in minutes; 0 means no daily limit applies. Falls back to the plain daily limit for an older plugin. */
+    public int getEffectiveDailyLimitMinutes() {
+        return effectiveDailyLimitMinutes != null ? effectiveDailyLimitMinutes : dailyLimitMinutes;
+    }
+
+    /** True unless the plugin reports that this user's limit is switched off. */
+    public boolean isEnabled() {
+        return enabled == null || enabled;
+    }
+
+    /** Allowed daily seconds = today's limit * 60 + extra time (0 when no daily limit applies). */
     public long getEffectiveAllowedSecondsDaily() {
-        return (long) dailyLimitMinutes * 60L + (long) creditSecondsDaily;
+        int minutes = getEffectiveDailyLimitMinutes();
+        if (minutes <= 0) {
+            return 0L;
+        }
+        return (long) minutes * 60L + (long) creditSecondsDaily;
     }
 }

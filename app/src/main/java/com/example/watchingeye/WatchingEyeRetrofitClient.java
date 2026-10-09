@@ -10,12 +10,18 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class WatchingEyeRetrofitClient {
 
-    public static WatchingEyeApiService getService(String baseUrl, final String pluginApiKey) {
+    /**
+     * @param baseUrl      Emby server address, e.g. https://emby.example.com
+     * @param pluginApiKey key generated on the Watching Eye plugin page
+     * @param embyApiKey   Emby administrator API key (Dashboard -> API Keys)
+     */
+    public static WatchingEyeApiService getService(String baseUrl, final String pluginApiKey, final String embyApiKey) {
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
                 .addInterceptor(chain -> {
                     Request original = chain.request();
                     Request request = original.newBuilder()
                             .header("X-WatchingEye-Api-Key", pluginApiKey != null ? pluginApiKey : "")
+                            .header("X-Emby-Token", embyApiKey != null ? embyApiKey : "")
                             .build();
                     return chain.proceed(request);
                 })
@@ -23,7 +29,7 @@ public class WatchingEyeRetrofitClient {
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS);
 
-        // Never log bodies in release — they include API keys
+        // BASIC logs only the method, URL and status code (never headers or bodies).
         if (BuildConfig.DEBUG) {
             HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
             logging.setLevel(HttpLoggingInterceptor.Level.BASIC);

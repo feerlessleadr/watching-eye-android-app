@@ -3,7 +3,7 @@
     <EditTextPreference
         android:key="emby_server_url"
         android:title="Emby Server URL"
-        android:summary="e.g. http://192.168.1.10:8096"
+        android:summary="Use an https address, e.g. https://emby.example.com (plain http is blocked)"
         android:defaultValue="" />
     <EditTextPreference
         android:key="emby_api_key"

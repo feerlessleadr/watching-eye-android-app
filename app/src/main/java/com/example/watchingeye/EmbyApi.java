@@ -9,24 +9,15 @@ import retrofit2.http.POST;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
+/** Emby server routes. The administrator key is sent in the {@code X-Emby-Token} header by {@link RetrofitClient}. */
 public interface EmbyApi {
 
     @GET("emby/Sessions")
-    Call<List<SessionInfo>> getSessions(
-            @Query("api_key") String apiKey,
-            @Query("Fields") String fields
-    );
+    Call<List<SessionInfo>> getSessions(@Query("Fields") String fields);
 
     @POST("emby/Sessions/{sessionId}/Playing/Stop")
-    Call<Void> stopStream(
-            @Path("sessionId") String sessionId,
-            @Query("api_key") String apiKey
-    );
+    Call<Void> stopStream(@Path("sessionId") String sessionId);
 
     @POST("emby/Sessions/{sessionId}/Message")
-    Call<Void> sendMessage(
-            @Path("sessionId") String sessionId,
-            @Query("api_key") String apiKey,
-            @Body MessageCommand message
-    );
+    Call<Void> sendMessage(@Path("sessionId") String sessionId, @Body MessageCommand message);
 }
