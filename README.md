@@ -81,6 +81,6 @@ An APK signed with a different key cannot be installed over an existing install 
 settings). Never commit keystores or `local.properties`.
 
 ## Notes
-- Version 1.3 (versionCode 4).
+- Version 1.4 (versionCode 5).
 - This repository previously contained a full decompiled export (`export.zip`) and extracted build artifacts; they were
   removed (still in git history). The sources under `app/src/main/java/com/example/watchingeye` are the app.
