@@ -58,7 +58,7 @@ public class UserCardAdapter extends ListAdapter<UserCardInfo, UserCardAdapter.C
 
                 @Override
                 public boolean areContentsTheSame(@NonNull UserCardInfo a, @NonNull UserCardInfo b) {
-                    return false;
+                    return UserCardInfo.sameDisplay(a, b);
                 }
             };
 
@@ -189,14 +189,17 @@ public class UserCardAdapter extends ListAdapter<UserCardInfo, UserCardAdapter.C
             }
 
             if (serverUrl != null && embyApiKey != null && status.getUserId() != null) {
-                GlideUrl avatar = embyImageUrl(
-                        "Users/" + status.getUserId() + "/Images/Primary?maxHeight=80&quality=90");
-                Glide.with(itemView.getContext())
-                        .load(avatar)
-                        .transform(new CircleCrop())
-                        .placeholder(android.R.drawable.ic_menu_myplaces)
-                        .error(android.R.drawable.ic_menu_myplaces)
-                        .into(avatarImageView);
+                String avatarPath = "Users/" + status.getUserId() + "/Images/Primary?maxHeight=80&quality=90";
+                // Only (re)load when the picture actually changed: reloading the same image shows the placeholder for a moment.
+                if (!(serverUrl + avatarPath).equals(avatarImageView.getTag())) {
+                    avatarImageView.setTag(serverUrl + avatarPath);
+                    Glide.with(itemView.getContext())
+                            .load(embyImageUrl(avatarPath))
+                            .transform(new CircleCrop())
+                            .placeholder(android.R.drawable.ic_menu_myplaces)
+                            .error(android.R.drawable.ic_menu_myplaces)
+                            .into(avatarImageView);
+                }
             }
 
             if (card.isPlaying() && session != null) {
@@ -213,14 +216,16 @@ public class UserCardAdapter extends ListAdapter<UserCardInfo, UserCardAdapter.C
                 nowPlayingTextView.setText("Playing: " + title);
 
                 if (serverUrl != null && embyApiKey != null && itemId != null) {
-                    GlideUrl poster = embyImageUrl(
-                            "Items/" + itemId + "/Images/Primary?maxHeight=200&quality=90");
+                    String posterPath = "Items/" + itemId + "/Images/Primary?maxHeight=200&quality=90";
                     posterImageView.setVisibility(View.VISIBLE);
-                    Glide.with(itemView.getContext())
-                            .load(poster)
-                            .placeholder(android.R.drawable.ic_menu_gallery)
-                            .error(android.R.drawable.ic_menu_gallery)
-                            .into(posterImageView);
+                    if (!(serverUrl + posterPath).equals(posterImageView.getTag())) {
+                        posterImageView.setTag(serverUrl + posterPath);
+                        Glide.with(itemView.getContext())
+                                .load(embyImageUrl(posterPath))
+                                .placeholder(android.R.drawable.ic_menu_gallery)
+                                .error(android.R.drawable.ic_menu_gallery)
+                                .into(posterImageView);
+                    }
                 } else {
                     posterImageView.setVisibility(View.GONE);
                 }

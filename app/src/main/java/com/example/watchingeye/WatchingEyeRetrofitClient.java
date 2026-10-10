@@ -16,7 +16,7 @@ public class WatchingEyeRetrofitClient {
      * @param embyApiKey   Emby administrator API key (Dashboard -> API Keys)
      */
     public static WatchingEyeApiService getService(String baseUrl, final String pluginApiKey, final String embyApiKey) {
-        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder()
+        OkHttpClient.Builder clientBuilder = Http.newBuilder()
                 .addInterceptor(chain -> {
                     Request original = chain.request();
                     Request request = original.newBuilder()
@@ -24,10 +24,7 @@ public class WatchingEyeRetrofitClient {
                             .header("X-Emby-Token", embyApiKey != null ? embyApiKey : "")
                             .build();
                     return chain.proceed(request);
-                })
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS);
+                });
 
         // BASIC logs only the method, URL and status code (never headers or bodies).
         if (BuildConfig.DEBUG) {

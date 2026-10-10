@@ -18,6 +18,19 @@
             android:layout_height="?attr/actionBarSize" />
     </com.google.android.material.appbar.AppBarLayout>
 
+    <TextView
+        android:id="@+id/connectionBanner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#B3261E"
+        android:padding="10dp"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/appBarLayout" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/sessionsRecyclerView"
         android:layout_width="0dp"
@@ -25,7 +38,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appBarLayout" />
+        app:layout_constraintTop_toBottomOf="@+id/connectionBanner" />
 
     <ProgressBar
         android:id="@+id/progressBar"

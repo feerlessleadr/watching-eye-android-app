@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import retrofit2.Response;
@@ -25,10 +28,23 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> actionResult = new MutableLiveData<>();
     private final MutableLiveData<Boolean> loading = new MutableLiveData<>(false);
 
-    private final ExecutorService pollExecutor = Executors.newSingleThreadExecutor();
+    /** Shown as a banner (not a pop-up) while the server cannot be reached; null when everything is fine. */
+    private final MutableLiveData<String> connectionProblem = new MutableLiveData<>();
+
+    /** How often to ask the server: quickly while somebody is watching, slowly otherwise, and backing off after failures. */
+    private static final long POLL_PLAYING_MS = 10_000L;
+    private static final long POLL_IDLE_MS = 30_000L;
+    private static final long POLL_MAX_BACKOFF_MS = 60_000L;
+
+    private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
     private final ExecutorService actionExecutor = Executors.newSingleThreadExecutor();
-    private final AtomicBoolean polling = new AtomicBoolean(false);
     private final AtomicBoolean hasLoadedOnce = new AtomicBoolean(false);
+
+    private ScheduledFuture<?> pollTask;
+    private int generation = 0;          // bumped by every start/stop so a stale poll cycle never reschedules itself
+    private int consecutiveFailures = 0;
+    private long lastStartMs = 0L;
+    private volatile boolean somebodyPlaying = false;
 
     private volatile long publicBlockedUntil = 0L;
 
@@ -41,7 +57,11 @@ public class MainViewModel extends ViewModel {
     public LiveData<String> getActionResult() { return actionResult; }
     public LiveData<Boolean> getLoading() { return loading; }
 
-    public void setCredentials(String serverUrl, String embyApiKey, String watchingEyeApiKey) {
+    public synchronized void setCredentials(String serverUrl, String embyApiKey, String watchingEyeApiKey) {
+        boolean changed = !java.util.Objects.equals(this.serverUrl, serverUrl)
+                || !java.util.Objects.equals(this.embyApiKey, embyApiKey)
+                || !java.util.Objects.equals(this.watchingEyeApiKey, watchingEyeApiKey);
+        if (changed) lastStartMs = 0L; // new settings: the next start must not be ignored
         this.serverUrl = serverUrl;
         this.embyApiKey = embyApiKey;
         this.watchingEyeApiKey = watchingEyeApiKey;
@@ -49,26 +69,75 @@ public class MainViewModel extends ViewModel {
         RetrofitClient.configure(serverUrl, embyApiKey);
     }
 
-    public void startUpdates() {
-        if (polling.getAndSet(true)) return;
-        pollExecutor.execute(() -> {
-            while (polling.get()) {
-                fetchOnce();
-                try {
-                    Thread.sleep(10000);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-        });
+    public LiveData<String> getConnectionProblem() { return connectionProblem; }
+
+    /** Clears a pop-up message once the screen has shown it, so it is not shown again when the screen is rebuilt. */
+    public void consumeMessages() {
+        error.setValue(null);
+        actionResult.setValue(null);
     }
 
-    public void stopUpdates() {
-        polling.set(false);
+    /** Starts (or restarts) polling from scratch: fresh connections, immediate first request. Call when the screen becomes visible. */
+    public synchronized void startUpdates() {
+        long now = System.currentTimeMillis();
+        if (now - lastStartMs < 3000L) return; // several triggers at once
+        lastStartMs = now;
+        if (pollTask != null) pollTask.cancel(false);
+        generation++;
+        consecutiveFailures = 0;
+        Http.resetConnections();
+        scheduleNext(0L, generation);
+    }
+
+    /** Stops polling. Call when the screen is no longer visible: nobody is looking, and the phone may be asleep. */
+    public synchronized void stopUpdates() {
+        generation++;
+        lastStartMs = 0L; // a later start must always run
+        if (pollTask != null) pollTask.cancel(false);
+    }
+
+    private synchronized void scheduleNext(long delayMs, int gen) {
+        if (gen != generation || poller.isShutdown()) return;
+        pollTask = poller.schedule(() -> pollCycle(gen), delayMs, TimeUnit.MILLISECONDS);
+    }
+
+    private void pollCycle(int gen) {
+        boolean ok;
+        try {
+            ok = fetchOnce();
+        } catch (Throwable t) {
+            ok = false;
+        }
+        long delay;
+        synchronized (this) {
+            if (ok) {
+                consecutiveFailures = 0;
+                delay = somebodyPlaying ? POLL_PLAYING_MS : POLL_IDLE_MS;
+            } else {
+                consecutiveFailures++;
+                delay = Math.min(POLL_MAX_BACKOFF_MS, POLL_PLAYING_MS * consecutiveFailures);
+            }
+        }
+        scheduleNext(delay, gen);
     }
 
     private WatchingEyeApiService weApi() {
         return WatchingEyeRetrofitClient.getService(serverUrl, watchingEyeApiKey, embyApiKey);
+    }
+
+    /** Explains a connection failure in words, including the technical reason so a persistent problem can be diagnosed. */
+    static String describeConnectionFailure(Throwable t) {
+        String reason = t.getClass().getSimpleName();
+        if (t instanceof java.net.UnknownHostException) {
+            return "Can't find the server (" + reason + "). Check the server address and your internet connection. Retrying...";
+        }
+        if (t instanceof java.net.SocketTimeoutException || t instanceof java.io.InterruptedIOException) {
+            return "The server is not answering (" + reason + "). Retrying...";
+        }
+        if (t instanceof javax.net.ssl.SSLException) {
+            return "Secure connection failed (" + reason + "). Check the server's certificate and https:// address. Retrying...";
+        }
+        return "Can't reach the server (" + reason + "). Retrying...";
     }
 
     /** Plain-language explanation for a failed request. The plugin's error responses carry no text, so the app explains them. */
@@ -89,7 +158,8 @@ public class MainViewModel extends ViewModel {
         }
     }
 
-    private void fetchOnce() {
+    /** One refresh. Returns true when the server answered usefully; on failure the last good cards stay on screen. */
+    private boolean fetchOnce() {
         try {
             if (!hasLoadedOnce.get()) {
                 loading.postValue(true);
@@ -115,7 +185,8 @@ public class MainViewModel extends ViewModel {
             if (statusResp.isSuccessful() && statusResp.body() != null) {
                 limitedUsers = statusResp.body();
             } else if (!statusResp.isSuccessful()) {
-                error.postValue(describeFailure("Loading status", statusResp.code()));
+                connectionProblem.postValue(describeFailure("Loading status", statusResp.code()));
+                return false;
             }
 
             EmbyApi embyApi = RetrofitClient.getInstance();
@@ -139,11 +210,20 @@ public class MainViewModel extends ViewModel {
                 cards.add(new UserCardInfo(user, match));
             }
 
+            boolean anyPlaying = false;
+            for (UserCardInfo card : cards) {
+                if (card.isPlaying()) anyPlaying = true;
+            }
+            somebodyPlaying = anyPlaying;
+
             userCards.postValue(cards);
+            connectionProblem.postValue(null);
             hasLoadedOnce.set(true);
+            return true;
 
         } catch (Exception e) {
-            error.postValue("Error: " + e.getMessage());
+            connectionProblem.postValue(describeConnectionFailure(e));
+            return false;
         } finally {
             loading.postValue(false);
         }
@@ -241,7 +321,7 @@ public class MainViewModel extends ViewModel {
     @Override
     protected void onCleared() {
         stopUpdates();
-        pollExecutor.shutdownNow();
+        poller.shutdownNow();
         actionExecutor.shutdownNow();
         super.onCleared();
     }

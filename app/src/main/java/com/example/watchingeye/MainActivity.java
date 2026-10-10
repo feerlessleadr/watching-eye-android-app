@@ -1,18 +1,23 @@
 package com.example.watchingeye;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.SimpleItemAnimator;
 
 import com.google.android.material.appbar.MaterialToolbar;
 
@@ -21,6 +26,8 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
     private MainViewModel viewModel;
     private UserCardAdapter adapter;
     private ProgressBar progressBar;
+    private TextView connectionBanner;
+    private ConnectivityManager.NetworkCallback networkCallback;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +46,11 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
 
         adapter = new UserCardAdapter(this);
         recyclerView.setAdapter(adapter);
+        // Cards are refreshed in place every few seconds; the default cross-fade on each refresh looks like flicker.
+        RecyclerView.ItemAnimator animator = recyclerView.getItemAnimator();
+        if (animator instanceof SimpleItemAnimator) {
+            ((SimpleItemAnimator) animator).setSupportsChangeAnimations(false);
+        }
 
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
@@ -57,22 +69,71 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
         viewModel.getError().observe(this, msg -> {
             if (msg != null && !msg.isEmpty()) {
                 Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+                viewModel.consumeMessages();
             }
         });
 
         viewModel.getActionResult().observe(this, msg -> {
             if (msg != null && !msg.isEmpty()) {
                 Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+                viewModel.consumeMessages();
             }
         });
 
+        // Connection trouble is shown as a banner above the (still visible) last-known data, not as a pop-up per refresh.
+        connectionBanner = findViewById(R.id.connectionBanner);
+        viewModel.getConnectionProblem().observe(this, problem -> {
+            if (connectionBanner == null) return;
+            if (problem == null || problem.isEmpty()) {
+                connectionBanner.setVisibility(View.GONE);
+            } else {
+                connectionBanner.setText(problem);
+                connectionBanner.setVisibility(View.VISIBLE);
+            }
+        });
+    }
+
+    /** Poll only while the screen is visible; every time it becomes visible start from scratch with fresh connections. */
+    @Override
+    protected void onStart() {
+        super.onStart();
         applyCredentialsAndStart();
+        registerNetworkCallback();
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        applyCredentialsAndStart();
+    protected void onStop() {
+        unregisterNetworkCallback();
+        viewModel.stopUpdates();
+        super.onStop();
+    }
+
+    /** When the phone changes network (Wi-Fi to mobile, VPN, coming back online) retry straight away on a fresh connection. */
+    private void registerNetworkCallback() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null || networkCallback != null) return;
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                viewModel.startUpdates();
+            }
+        };
+        try {
+            cm.registerDefaultNetworkCallback(networkCallback);
+        } catch (RuntimeException e) {
+            networkCallback = null; // not essential: polling still retries on its own
+        }
+    }
+
+    private void unregisterNetworkCallback() {
+        if (networkCallback == null) return;
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        try {
+            if (cm != null) cm.unregisterNetworkCallback(networkCallback);
+        } catch (RuntimeException ignored) {
+            // already unregistered
+        }
+        networkCallback = null;
     }
 
     private void applyCredentialsAndStart() {
@@ -104,7 +165,6 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
 
         viewModel.setCredentials(serverUrl, embyKey, weKey);
         adapter.setServerInfo(serverUrl, embyKey);
-        viewModel.stopUpdates();
         viewModel.startUpdates();
     }
 
@@ -148,15 +208,10 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
             startActivity(new Intent(this, SettingsActivity.class));
             return true;
         } else if (item.getItemId() == 2) {
+            viewModel.stopUpdates(); // a manual refresh always restarts, even right after a start
             applyCredentialsAndStart();
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (viewModel != null) viewModel.stopUpdates();
-        super.onDestroy();
     }
 }

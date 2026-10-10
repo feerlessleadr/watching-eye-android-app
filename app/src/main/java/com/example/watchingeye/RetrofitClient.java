@@ -25,13 +25,10 @@ public class RetrofitClient {
 
     public static synchronized EmbyApi getInstance() {
         if (instance == null) {
-            OkHttpClient client = new OkHttpClient.Builder()
+            OkHttpClient client = Http.newBuilder()
                     .addInterceptor(chain -> chain.proceed(chain.request().newBuilder()
                             .header("X-Emby-Token", embyApiKey)
                             .build()))
-                    .connectTimeout(30, TimeUnit.SECONDS)
-                    .readTimeout(30, TimeUnit.SECONDS)
-                    .writeTimeout(30, TimeUnit.SECONDS)
                     .build();
 
             Retrofit retrofit = new Retrofit.Builder()
