@@ -6,19 +6,31 @@
 #   tools/verify-apk-signature.sh <apk> <expected SHA-256 fingerprint, with or without colons>
 #
 # APKSIGNER may point to the apksigner executable; otherwise "apksigner" from the PATH is used.
-set -euo pipefail
+#
+# Exit codes: 0 = signed by the expected certificate
+#             1 = signed by a DIFFERENT certificate (wrong key)
+#             2 = no signature could be read (APK missing/unsigned, or apksigner could not run); the output is printed
+set -uo pipefail
 
 apk="${1:?usage: verify-apk-signature.sh <apk> <expected-sha256>}"
 expected="$(printf '%s' "${2:?usage: verify-apk-signature.sh <apk> <expected-sha256>}" | tr -d ': \r\n' | tr 'A-F' 'a-f')"
 apksigner="${APKSIGNER:-apksigner}"
 
-output="$("$apksigner" verify --print-certs "$apk" 2>/dev/null | tr -d '\r' || true)"
-signers="$(printf '%s\n' "$output" | grep -c '^Signer #[0-9]* certificate SHA-256 digest:' || true)"
-actual="$(printf '%s\n' "$output" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n 1 | tr 'A-F' 'a-f')"
+# Both stdout and stderr are kept so that a failure explains itself.
+output="$("$apksigner" verify --print-certs "$apk" 2>&1 | tr -d '\r')"
+status=$?
+
+# apksigner prints "Signer #1 certificate ..." or, for v3 signatures, "Signer (minSdkVersion=..., maxSdkVersion=...) certificate ...".
+lines="$(printf '%s\n' "$output" | grep -E '^Signer .*certificate SHA-256 digest:' || true)"
+signers="$(printf '%s' "$lines" | grep -c . || true)"
+actual="$(printf '%s\n' "$lines" | head -n 1 | sed 's/.*digest: *//' | tr 'A-F' 'a-f' | tr -d ' ')"
 
 if [ "$signers" != "1" ] || [ -z "$actual" ]; then
-  echo "ERROR: expected exactly one signer, found $signers (is the APK signed?)" >&2
-  exit 1
+  echo "ERROR: could not read exactly one signer from '$apk' (found $signers; apksigner exit status $status)." >&2
+  echo "----- apksigner: $apksigner" >&2
+  printf '%s\n' "$output" | head -n 40 >&2
+  echo "-----" >&2
+  exit 2
 fi
 if [ "$actual" != "$expected" ]; then
   echo "ERROR: signing certificate mismatch." >&2

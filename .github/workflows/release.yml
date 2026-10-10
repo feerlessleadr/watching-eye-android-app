@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: write # only needed to create the GitHub Release
@@ -26,12 +26,12 @@ jobs:
       # anything else, because such an APK could not be installed over the existing app.
       EXPECTED_CERT_SHA256: DF:15:A0:B3:A7:31:31:32:6A:10:B5:49:34:D1:EE:A3:C2:A0:24:95:19:D2:28:31:2E:C3:72:61:85:F4:36:F7
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@da187c8e6ffbd3802e00f2477aa5a822b25f2dda # v4.4.4
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
       - name: Check that the tag matches the app version
         if: github.ref_type == 'tag'
@@ -64,10 +64,33 @@ jobs:
           ./gradlew --no-daemon assembleRelease
           rm -f "${keystore}"
 
+      - name: Show what was built
+        run: |
+          java -version
+          ls -la app/build/outputs/apk/release/
+
       - name: Verify the APK is signed with the expected key
         run: |
-          apksigner="$(ls -d "${ANDROID_HOME}"/build-tools/*/apksigner | sort -V | tail -n 1)"
-          APKSIGNER="${apksigner}" bash tools/verify-apk-signature.sh app/build/outputs/apk/release/app-release.apk "${EXPECTED_CERT_SHA256}"
+          apk="app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "${apk}" ]; then
+            echo "::error::${apk} was not produced. The release build was probably not signed (check the signing secrets)."
+            exit 1
+          fi
+          # Try each installed apksigner, newest first; some versions need a newer Java than others.
+          for candidate in $(ls -d "${ANDROID_HOME}"/build-tools/*/apksigner | sort -rV); do
+            echo "Trying ${candidate}"
+            rc=0
+            APKSIGNER="${candidate}" bash tools/verify-apk-signature.sh "${apk}" "${EXPECTED_CERT_SHA256}" || rc=$?
+            if [ "${rc}" -eq 0 ]; then
+              exit 0
+            fi
+            if [ "${rc}" -eq 1 ]; then
+              echo "::error::The APK is signed with a different key than expected. Check the keystore secret."
+              exit 1
+            fi
+          done
+          echo "::error::No installed apksigner could read the APK signature (see the output above)."
+          exit 1
 
       - name: Name the APK and write its checksum
         run: |
@@ -86,7 +109,7 @@ jobs:
 
       - name: Keep the APK as a workflow artifact (manual dry runs)
         if: github.ref_type != 'tag'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: signed-apk
           path: dist/*
