@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Plugin problems (server side)
+    url: https://github.com/feerlessleadr/watching-eye-emby/issues
+    about: Problems with the Emby plugin itself belong in the plugin repository.
