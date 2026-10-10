@@ -1,8 +1,9 @@
 # Watching Eye (Android app)
 
 A small Android app to monitor and control the **Watching Eye** Emby plugin from your phone: see each limited user's
-daily usage and what they are playing, add extra time, put a user in time-out (and clear it), reset their time, and
-stop a stream.
+time left and what they are playing, add extra time with one tap (and undo it), put a user in time-out (and end it),
+reset their time, and stop a stream. Updates arrive by **live push** from your server (no polling), the app follows
+the phone's light/dark setting, and there is an optional alert when someone reaches a limit plus a home-screen widget.
 
 Companion plugin: https://github.com/feerlessleadr/watching-eye-emby (this app is tested against it; older plugin
 versions still work, see "Compatibility").
@@ -20,7 +21,9 @@ versions still work, see "Compatibility").
 ## What the app calls
 | Purpose | Request |
 |---|---|
-| Status (every 10 s) | `GET /WatchingEye/LimitedUsersStatus`, falling back to `GET /WatchingEye/Public/Status` |
+| Live updates | one websocket to `/embywebsocket` (token in the `X-Emby-Token` header): `WatchingEyeStatusStart` (plugin 1.8+) and `SessionsStart` (Emby) |
+| Status (first load, pull-to-refresh, and every 20 s only while the websocket is down) | `GET /WatchingEye/LimitedUsersStatus`, falling back to `GET /WatchingEye/Public/Status` |
+| Undo for extra time | `POST /WatchingEye/Public/ReduceTime` (plugin 1.8+) |
 | Extra time | `POST /WatchingEye/Public/ExtendTime` |
 | Time-out / clear | `POST /WatchingEye/Public/TimeOutUser`, `POST /WatchingEye/Public/ClearTimeOut` |
 | Reset time | `POST /WatchingEye/Public/ResetUserTime` |
@@ -32,10 +35,16 @@ Emby writes request URLs (including `api_key=` values) to its log files.
 ## Compatibility with the plugin
 - Works with the original plugin 1.6.8.0 and with this fork. Fields added by newer plugin versions
   (`EffectiveDailyLimitMinutes`, `IsEnabled`) are optional; without them the app shows the plain daily limit.
+- Plugin **1.8 or newer** is needed for live push, Undo and the exact countdown; with an older plugin the app still works
+  by asking the server every 20 s, shows the daily limit only, and Undo reports that the plugin is too old.
+- If you put a reverse proxy in front of Emby it must allow websockets, otherwise the app falls back to asking every 20 s.
+- **Alerts** (Settings, off by default) keep a connection open in the background (a permanent low-priority notification)
+  and notify you when someone reaches a limit, with +15/+30/+60 buttons. Some phones stop background apps; exclude the app
+  from battery optimisation if the alerts stop arriving.
 - The plugin limits requests to **1-43200 minutes**; the app clamps what you type and explains refusals.
 - Time-outs are shown in the phone's local time and disappear when they end, even if the plugin still reports them.
 - After repeated wrong plugin keys the plugin locks its public API for 5 minutes. The app stops calling the public
-  route for 5 minutes after the first refusal, so a wrong key cannot trigger that lockout by polling.
+  route for 5 minutes after the first refusal, so a wrong key cannot trigger that lockout by retrying.
 - Plain `http://` addresses are blocked (`usesCleartextTraffic=false`); the app tells you when the address is `http://`.
 
 ## Build and test

@@ -13,6 +13,8 @@ public final class SecurePrefs {
     public static final String KEY_SERVER_URL = "emby_server_url";
     public static final String KEY_EMBY_API = "emby_api_key";
     public static final String KEY_WE_API = "watchingeye_api_key";
+    /** Optional background alerts (a small always-on connection plus notifications). Off by default. */
+    public static final String KEY_ALERTS = "alerts_enabled";
 
     private SecurePrefs() {}
 

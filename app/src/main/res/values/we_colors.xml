@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Status colours used on the user cards (light theme; values-night has the dark versions). -->
+    <color name="we_ok">#2E7D32</color>
+    <color name="we_warn">#9A5B00</color>
+    <color name="we_bad">#B3261E</color>
+    <color name="we_banner">#B3261E</color>
+    <color name="we_brand">#6750A4</color>
+</resources>

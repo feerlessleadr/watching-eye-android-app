@@ -27,6 +27,10 @@ public interface WatchingEyeApiService {
     @POST("/WatchingEye/Public/ExtendTime")
     Call<Void> extendTime(@Body UserMinutesRequest request);
 
+    /** Takes back extra time (undo for ExtendTime). Plugin 1.8 or newer. */
+    @POST("/WatchingEye/Public/ReduceTime")
+    Call<Void> reduceTime(@Body UserMinutesRequest request);
+
     /** Minutes must be 1..43200; the limiter must be enabled and the user an enabled limited user. */
     @POST("/WatchingEye/Public/TimeOutUser")
     Call<Void> timeOutUser(@Body UserMinutesRequest request);

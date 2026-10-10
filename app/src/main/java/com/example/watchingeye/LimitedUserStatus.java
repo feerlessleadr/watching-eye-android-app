@@ -57,7 +57,56 @@ public class LimitedUserStatus {
     @SerializedName("IsEnabled")
     private Boolean enabled;
 
+    /** Why playback is blocked now: Allowed, TimeLimitExceeded, OutsideTimeWindow or TimedOut (plugin 1.8+; null from an older plugin). */
+    @SerializedName("BlockReason")
+    private String blockReason;
+
+    /** Seconds left before the closest enabled limit is reached; -1 when no limit applies (plugin 1.8+). */
+    @SerializedName("SecondsRemaining")
+    private Double secondsRemaining;
+
+    /** Daily, Weekly, Monthly or Yearly: the limit that is closest (plugin 1.8+). */
+    @SerializedName("LimitingPeriod")
+    private String limitingPeriod;
+
+    /** Total seconds allowed in that period, including extra time (plugin 1.8+). */
+    @SerializedName("LimitingAllowedSeconds")
+    private Double limitingAllowedSeconds;
+
     public LimitedUserStatus() {}
+
+    /** Why playback is blocked right now; "Allowed" when it is not. An older plugin does not say, so a running time-out is detected from its end time. */
+    public String getBlockReason() {
+        if (blockReason != null && !blockReason.isEmpty()) {
+            return blockReason;
+        }
+        return TimeOutFormat.activeEnd(timeOutUntil, java.time.Instant.now()) != null ? "TimedOut" : "Allowed";
+    }
+
+    /** Seconds of watch time left before the closest limit, or -1 when the user has no limit. Falls back to the daily limit for an older plugin. */
+    public double getRemainingSeconds() {
+        if (secondsRemaining != null) {
+            return secondsRemaining < 0 ? -1.0 : secondsRemaining;
+        }
+        long allowed = getEffectiveAllowedSecondsDaily();
+        return allowed <= 0 ? -1.0 : Math.max(0.0, allowed - secondsWatchedDaily);
+    }
+
+    /** The closest limit's period in words ("daily", "weekly", ...). */
+    public String getLimitingPeriodLabel() {
+        if (limitingPeriod != null && !limitingPeriod.isEmpty()) {
+            return limitingPeriod.toLowerCase(java.util.Locale.ROOT);
+        }
+        return "daily";
+    }
+
+    /** Total seconds allowed in the closest limit's period (0 when there is no limit). */
+    public double getLimitingAllowedSeconds() {
+        if (limitingAllowedSeconds != null) {
+            return limitingAllowedSeconds;
+        }
+        return getEffectiveAllowedSecondsDaily();
+    }
 
     public String getUserId() { return userId; }
     public String getUsername() { return username; }
