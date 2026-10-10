@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo/watching-eye-512.png" alt="Watching Eye: a watchful owl with one clock eye and one real eye" width="128"></p>
+
 # Watching Eye (Android app)
 
 A small Android app to monitor and control the **Watching Eye** Emby plugin from your phone: see each limited user's
@@ -94,6 +96,9 @@ MIT, see [LICENSE](LICENSE). The app depends on open-source libraries (AndroidX,
 that keep their own licenses.
 
 ## Notes
-- Version 1.4 (versionCode 5).
+- Version 1.5 (versionCode 6; not released until a `v1.5` tag is pushed).
+- The logo (a watchful owl with one clock eye and one real eye, under a night sky) is original artwork made for this app
+  and covered by the MIT license like the rest of the repository. The master is `assets/logo/watching-eye-icon.svg`
+  (a 512 px PNG sits next to it); the app's adaptive and themed icons are the vector drawables `ic_launcher_*` in `res/drawable`.
 - This repository previously contained a full decompiled export (`export.zip`) and extracted build artifacts; they were
   removed from the code and from the git history. The sources under `app/src/main/java/com/example/watchingeye` are the app.

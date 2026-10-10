@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512" height="512" viewBox="0 0 216 216">
+<title>Watching Eye: a watchful owl with one clock eye and one real eye</title>
+<defs><clipPath id="sq"><rect width="216" height="216" rx="50"/></clipPath></defs>
+<g clip-path="url(#sq)">
+<rect width="216" height="216" fill="#1B2559"/>
+<circle cx="44" cy="52" r="19" fill="#FFE9A8"/><circle cx="52" cy="46" r="17" fill="#1B2559"/>
+<g fill="#FFE9A8"><circle cx="30" cy="112" r="2.4"/><circle cx="76" cy="28" r="1.8"/><circle cx="178" cy="44" r="2.4"/><circle cx="194" cy="96" r="1.8"/><circle cx="160" cy="26" r="1.6"/><circle cx="22" cy="150" r="1.6"/></g>
+<g transform="translate(108,114) scale(0.82)">
+<path d="M-56,-58 L-50,-94 L-22,-70 Q0,-78 22,-70 L50,-94 L56,-58 Q70,-20 62,26 Q52,76 0,80 Q-52,76 -62,26 Q-70,-20 -56,-58 Z" fill="#F4B860"/>
+<path d="M-62,6 Q-76,48 -42,72 Q-50,40 -46,12 Z" fill="#DE9334"/><path d="M62,6 Q76,48 42,72 Q50,40 46,12 Z" fill="#DE9334"/>
+<ellipse cx="0" cy="46" rx="32" ry="30" fill="#FFF0D2"/>
+<g fill="none" stroke="#DE9334" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><path d="M-18,38 L-10,46 L-2,38"/><path d="M2,38 L10,46 L18,38"/><path d="M-10,54 L0,63 L10,54"/></g>
+<path d="M-9,8 L9,8 L0,26 Z" fill="#E8772E"/>
+<rect x="-24" y="75" width="16" height="9" rx="4.5" fill="#E8772E"/><rect x="8" y="75" width="16" height="9" rx="4.5" fill="#E8772E"/>
+<g transform="translate(-30,-16)"><circle r="35" fill="#0F1740"/><circle r="29" fill="#FFF6E5"/>
+<g stroke="#0F1740" stroke-width="4" stroke-linecap="round"><path d="M0,-25 L0,-20"/><path d="M25,0 L20,0"/><path d="M0,25 L0,20"/><path d="M-25,0 L-20,0"/></g>
+<path d="M0,0 L0,-19" stroke="#E8772E" stroke-width="4.5" stroke-linecap="round"/><path d="M0,0 L12,7" stroke="#0F1740" stroke-width="5" stroke-linecap="round"/><circle r="4.5" fill="#0F1740"/></g>
+<g transform="translate(30,-16)"><circle r="35" fill="#0F1740"/><circle r="29" fill="#FFF6E5"/><circle cx="3" cy="2" r="16" fill="#6C5CE7"/><circle cx="3" cy="2" r="8" fill="#0F1740"/><circle cx="9" cy="-4" r="4" fill="#FFFFFF"/></g>
+<path d="M12,-58 Q32,-66 50,-54" fill="none" stroke="#0F1740" stroke-width="6" stroke-linecap="round"/>
+</g></g></svg>

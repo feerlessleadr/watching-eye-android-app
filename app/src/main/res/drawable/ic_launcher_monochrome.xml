@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One-colour version of the owl for Android's themed icons. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="216"
+    android:viewportHeight="216">
+    <group android:translateX="108" android:translateY="114" android:scaleX="0.82" android:scaleY="0.82">
+        <path android:fillColor="#000000" android:fillType="evenOdd" android:pathData="M-56,-58 L-50,-94 L-22,-70 Q0,-78 22,-70 L50,-94 L56,-58 Q70,-20 62,26 Q52,76 0,80 Q-52,76 -62,26 Q-70,-20 -56,-58 Z M-65,-16 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 Z M-5,-16 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 Z M-9,8 L9,8 L0,26 Z" />
+        <path android:fillColor="#000000" android:fillType="evenOdd" android:pathData="M-65,-16 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 Z M-59,-16 a29,29 0 1,0 58,0 a29,29 0 1,0 -58,0 Z M-5,-16 a35,35 0 1,0 70,0 a35,35 0 1,0 -70,0 Z M1,-16 a29,29 0 1,0 58,0 a29,29 0 1,0 -58,0 Z" />
+        <path android:strokeColor="#000000" android:strokeWidth="4.5" android:strokeLineCap="round" android:pathData="M-30,-16 L-30,-35 M-30,-16 L-18,-9 M-30,-41 L-30,-36 M-5,-16 L-10,-16 M-30,9 L-30,4 M-55,-16 L-50,-16" />
+        <path android:fillColor="#000000" android:pathData="M-34.5,-16 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z" />
+        <path android:fillColor="#000000" android:fillType="evenOdd" android:pathData="M17,-14 a16,16 0 1,0 32,0 a16,16 0 1,0 -32,0 Z M27,-14 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0 Z" />
+        <path android:strokeColor="#000000" android:strokeWidth="6" android:strokeLineCap="round" android:pathData="M12,-58 Q32,-66 50,-54" />
+    </group>
+</vector>
