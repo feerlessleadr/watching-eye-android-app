@@ -47,9 +47,38 @@ Requires Android Studio (or JDK 17+ and the Android SDK; compileSdk 35).
 The integration test `PluginIntegrationTest` talks to a **test** Emby server and is skipped unless these environment
 variables are set: `WE_BASE_URL`, `WE_EMBY_KEY`, `WE_PLUGIN_KEY`, `WE_USER_ID` (a limited user).
 
-## Signing
-Release builds must be signed with your own key; an APK signed with a different key cannot be installed over an
-existing install (uninstall first, which clears the saved settings). Never commit keystores or `local.properties`.
+## Releasing (automatic signed APK on GitHub)
+Pushing a version tag builds, signs and publishes the APK:
+
+1. Bump `versionCode` (must increase every release) and `versionName` in `app/build.gradle`, commit and push.
+2. Tag and push: `git tag v1.4 && git push origin v1.4` (the tag must equal `v` + `versionName`, otherwise the build stops).
+3. The **Release APK** workflow runs the unit tests, builds the release APK, signs it, checks that it is signed with the
+   expected key, and attaches `WatchingEye-v1.4.apk` and a `.sha256` checksum to a GitHub Release.
+
+A dry run is available without publishing anything: Actions tab -> **Release APK** -> **Run workflow**. It builds and
+signs the APK and keeps it as a workflow artifact for 14 days. The **CI** workflow runs the tests and a debug build on
+every push.
+
+### One-time setup: signing secrets
+The key is never stored in the repository. Add four **repository secrets** (Settings -> Secrets and variables -> Actions):
+
+| Secret | Value |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | the keystore file, base64 encoded: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\to\watchingeye.jks")) \| Set-Clipboard` |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | key alias (`key0`) |
+| `ANDROID_KEY_PASSWORD` | key password (often the same as the keystore password) |
+
+The workflow compares the signing certificate with the fingerprint of the key that signed the installed app
+(`EXPECTED_CERT_SHA256` in `.github/workflows/release.yml`; a public value, not a secret). To use a different key, update that value.
+Keep your own backup of the keystore and passwords: GitHub secrets cannot be read back, and without the key an installed
+app can never be updated.
+
+### Signing locally
+`app/build.gradle` signs the release build only when `ANDROID_KEYSTORE_FILE`, `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` are set; otherwise `assembleRelease` produces an unsigned APK.
+An APK signed with a different key cannot be installed over an existing install (uninstall first, which clears the saved
+settings). Never commit keystores or `local.properties`.
 
 ## Notes
 - Version 1.3 (versionCode 4).
