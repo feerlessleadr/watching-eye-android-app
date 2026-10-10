@@ -25,11 +25,11 @@ versions still work, see "Compatibility").
    - **WatchingEye API Key** - the key from step 2
 
 ### Protecting the app itself
-- **Screen lock:** by default the app asks for your phone's PIN, pattern or fingerprint before it opens (and before Settings),
-  because anyone who can open it can add time. Switch it off in Settings only if you accept that. It also hides the app from
-  screenshots and the recent-apps view. A phone without a screen lock cannot offer this.
-- **Notifications:** set Android to hide sensitive content on the lock screen (Settings -> Notifications); then the limit alert shows only "a viewing limit was reached", and names and the +15/+30/+60
-  buttons need an unlocked phone, and the buttons ask for the screen lock first.
+- **No app lock:** the app does not ask for a PIN or fingerprint of its own. It relies on your phone's screen lock: keep the phone
+  locked (PIN, pattern, fingerprint or face) when children can reach it, because anyone who can open the app can add time.
+- **Notifications:** set Android to hide sensitive content on the lock screen (Settings -> Notifications); then the limit alert
+  shows only "a viewing limit was reached". The +15/+30/+60 buttons need the phone to be unlocked (Android 12 or newer; the app
+  also ignores them while the phone is locked).
 - **Storage:** settings are stored encrypted with a key held in the Android Keystore. If they cannot be read they are discarded
   (you enter them again); the app never falls back to plain text.
 - **Widget:** Settings has an option to show "User 1, User 2" instead of names on the home-screen widget.

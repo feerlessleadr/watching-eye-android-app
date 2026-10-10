@@ -2,8 +2,9 @@ package com.example.watchingeye;
 
 import android.os.Bundle;
 
-/** The settings screen. Behind the same screen-lock check as the main screen, because it shows and changes the keys. */
-public class SettingsActivity extends LockedActivity {
+import androidx.appcompat.app.AppCompatActivity;
+
+public class SettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -13,10 +14,5 @@ public class SettingsActivity extends LockedActivity {
                     .replace(android.R.id.content, new SettingsFragment())
                     .commit();
         }
-    }
-
-    @Override
-    protected void onUnlocked() {
-        // Nothing to start: the settings screen only shows and edits saved values.
     }
 }

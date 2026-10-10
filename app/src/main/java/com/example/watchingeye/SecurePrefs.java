@@ -27,8 +27,6 @@ public final class SecurePrefs {
     public static final String KEY_WE_API = "watchingeye_api_key";
     /** Optional background alerts (a small always-on connection plus notifications). Off by default. */
     public static final String KEY_ALERTS = "alerts_enabled";
-    /** Ask for the phone's screen lock before the app (and its settings) can be opened. On by default. */
-    public static final String KEY_APP_LOCK = "app_lock_enabled";
     /** Show "User 1", "User 2" instead of names on the home-screen widget. Off by default. */
     public static final String KEY_WIDGET_HIDE_NAMES = "widget_hide_names";
 

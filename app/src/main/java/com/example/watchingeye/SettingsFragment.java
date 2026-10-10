@@ -76,12 +76,6 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         maskSummary("emby_api_key");
         maskSummary("watchingeye_api_key");
 
-        SwitchPreferenceCompat lockSwitch = findPreference(SecurePrefs.KEY_APP_LOCK);
-        if (lockSwitch != null && !AppLock.isDeviceSecure(requireContext())) {
-            lockSwitch.setEnabled(false);
-            lockSwitch.setSummary("Your phone has no screen lock, so there is nothing to ask for. Set a PIN, pattern or fingerprint in Android's settings and anyone who picks up this phone will no longer be able to use the app.");
-        }
-
         Preference signIn = findPreference("emby_sign_in");
         if (signIn != null) {
             signIn.setOnPreferenceClickListener(p -> {

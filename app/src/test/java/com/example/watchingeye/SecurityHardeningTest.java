@@ -17,16 +17,6 @@ import org.junit.Test;
 
 public class SecurityHardeningTest {
 
-    // ---- screen lock grace rule ----------------------------------------------------------------------------
-
-    @Test
-    public void theAppIsLockedUntilItWasUnlockedAndAfterTheGracePeriod() {
-        long now = 1_000_000L;
-        assertTrue("never unlocked", AppLock.needsUnlockAt(0L, now));
-        assertFalse("just used", AppLock.needsUnlockAt(now - 5_000L, now));
-        assertFalse("right at the limit", AppLock.needsUnlockAt(now - AppLock.GRACE_MS, now));
-        assertTrue("away for too long", AppLock.needsUnlockAt(now - AppLock.GRACE_MS - 1L, now));
-    }
 
     // ---- sign-in with a regular Emby account -----------------------------------------------------------------
 

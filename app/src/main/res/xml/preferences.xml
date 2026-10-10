@@ -21,16 +21,10 @@
         android:title="WatchingEye API Key"
         android:defaultValue="" />
     <SwitchPreferenceCompat
-        android:key="app_lock_enabled"
-        app:singleLineTitle="false"
-        android:title="Ask for the phone's screen lock"
-        android:summary="Before the app opens, ask for your PIN, pattern or fingerprint, so nobody else can add time or end a time-out. Also hides the app in the recent-apps view."
-        android:defaultValue="true" />
-    <SwitchPreferenceCompat
         android:key="alerts_enabled"
         app:singleLineTitle="false"
         android:title="Alert me when someone reaches a limit"
-        android:summary="Keeps a small connection to your server open in the background and shows a notification with +15/+30/+60 buttons (they ask for your screen lock first). Uses a little battery; some phones need the app excluded from battery optimisation for this to stay on."
+        android:summary="Keeps a small connection to your server open in the background and shows a notification with +15/+30/+60 buttons (on Android 12+ they need the phone to be unlocked). Uses a little battery; some phones need the app excluded from battery optimisation for this to stay on."
         android:defaultValue="false" />
     <SwitchPreferenceCompat
         android:key="widget_hide_names"

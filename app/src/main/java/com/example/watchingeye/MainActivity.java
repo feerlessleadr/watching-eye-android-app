@@ -33,7 +33,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-public class MainActivity extends LockedActivity implements UserCardAdapter.Listener {
+public class MainActivity extends AppCompatActivity implements UserCardAdapter.Listener {
 
     private static final long TICK_MS = 1000L;
 
@@ -116,7 +116,8 @@ public class MainActivity extends LockedActivity implements UserCardAdapter.List
 
     /** Live data only flows while the screen is visible: on the way in connect afresh, on the way out hang up. */
     @Override
-    protected void onUnlocked() {
+    protected void onStart() {
+        super.onStart();
         if (SecurePrefs.takeWasReset()) {
             Toast.makeText(this, "The saved settings could not be read and were cleared. Please enter them again.", Toast.LENGTH_LONG).show();
         }
