@@ -66,8 +66,11 @@ final class WidgetUpdater {
     private static void render(Context context, List<LimitedUserStatus> users, String liveLabel) {
         List<String> lines = new ArrayList<>();
         Instant now = Instant.now();
+        boolean hideNames = SecurePrefs.get(context).getBoolean(SecurePrefs.KEY_WIDGET_HIDE_NAMES, false);
+        int index = 0;
         for (LimitedUserStatus user : users) {
-            lines.add(WidgetText.row(user, now, ZoneId.systemDefault(), Locale.getDefault()));
+            index++;
+            lines.add(WidgetText.row(user, now, ZoneId.systemDefault(), Locale.getDefault(), hideNames ? "User " + index : null));
         }
         if (lines.isEmpty()) {
             lines.add("No limited users yet.");

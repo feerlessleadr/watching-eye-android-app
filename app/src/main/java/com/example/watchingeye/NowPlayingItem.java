@@ -16,6 +16,15 @@ public class NowPlayingItem {
     @SerializedName("RunTimeTicks")
     private Long runTimeTicks;
 
+    public NowPlayingItem() {}
+
+    NowPlayingItem(String id, String name, String type, long runTimeTicks) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.runTimeTicks = runTimeTicks;
+    }
+
     public String getName() { return name; }
     public String getId() { return id; }
     public String getType() { return type; }

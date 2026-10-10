@@ -73,7 +73,22 @@ public class LimitedUserStatus {
     @SerializedName("LimitingAllowedSeconds")
     private Double limitingAllowedSeconds;
 
+    /** What the user is playing now (plugin 1.9+). */
+    @SerializedName("NowPlaying")
+    private PluginNowPlaying nowPlaying;
+
+    /** 2 or higher means the plugin reports now-playing itself, so a missing NowPlaying really means "not playing". */
+    @SerializedName("ApiLevel")
+    private Integer apiLevel;
+
     public LimitedUserStatus() {}
+
+    public PluginNowPlaying getNowPlaying() { return nowPlaying; }
+
+    /** True when the plugin itself says what is playing (plugin 1.9+), so Emby's session list is not needed. */
+    public boolean reportsNowPlaying() {
+        return apiLevel != null && apiLevel >= 2;
+    }
 
     /** Why playback is blocked right now; "Allowed" when it is not. An older plugin does not say, so a running time-out is detected from its end time. */
     public String getBlockReason() {

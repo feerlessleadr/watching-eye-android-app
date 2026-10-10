@@ -1,9 +1,15 @@
 package com.example.watchingeye;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.InputType;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -14,6 +20,8 @@ import androidx.preference.Preference;
 import androidx.preference.PreferenceDataStore;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.SwitchPreferenceCompat;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class SettingsFragment extends PreferenceFragmentCompat {
 
@@ -68,6 +76,20 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         maskSummary("emby_api_key");
         maskSummary("watchingeye_api_key");
 
+        SwitchPreferenceCompat lockSwitch = findPreference(SecurePrefs.KEY_APP_LOCK);
+        if (lockSwitch != null && !AppLock.isDeviceSecure(requireContext())) {
+            lockSwitch.setEnabled(false);
+            lockSwitch.setSummary("Your phone has no screen lock, so there is nothing to ask for. Set a PIN, pattern or fingerprint in Android's settings and anyone who picks up this phone will no longer be able to use the app.");
+        }
+
+        Preference signIn = findPreference("emby_sign_in");
+        if (signIn != null) {
+            signIn.setOnPreferenceClickListener(p -> {
+                showSignInDialog();
+                return true;
+            });
+        }
+
         alertsSwitch = findPreference(SecurePrefs.KEY_ALERTS);
         if (alertsSwitch != null) {
             alertsSwitch.setOnPreferenceChangeListener((preference, newValue) -> {
@@ -79,6 +101,75 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 return true;
             });
         }
+    }
+
+    /** Asks for an Emby user name and password, signs in once, and keeps only the resulting token. */
+    private void showSignInDialog() {
+        final Context context = requireContext();
+        final SharedPreferences prefs = SecurePrefs.get(context.getApplicationContext());
+        final String serverUrl = prefs.getString(SecurePrefs.KEY_SERVER_URL, "");
+        if (serverUrl == null || serverUrl.trim().isEmpty()) {
+            Toast.makeText(context, "Enter the Emby server address first.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        LinearLayout box = new LinearLayout(context);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (20 * context.getResources().getDisplayMetrics().density);
+        box.setPadding(pad, pad / 2, pad, 0);
+        final EditText user = new EditText(context);
+        user.setHint("Emby user name");
+        user.setInputType(InputType.TYPE_CLASS_TEXT);
+        final EditText password = new EditText(context);
+        password.setHint("Password (used once, not stored)");
+        password.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        box.addView(user);
+        box.addView(password);
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Sign in with a regular Emby account")
+                .setMessage("Use an ordinary (non-administrator) user, for example one you create just for this app.")
+                .setView(box)
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Sign in", (d, w) -> {
+                    final String name = user.getText().toString().trim();
+                    final String pw = password.getText().toString();
+                    password.getText().clear();
+                    if (name.isEmpty() || pw.isEmpty()) {
+                        Toast.makeText(context, "Enter both a user name and a password.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    final Handler main = new Handler(Looper.getMainLooper());
+                    new Thread(() -> {
+                        try {
+                            EmbyLogin.Result result = EmbyLogin.signIn(Http.newBuilder().build(), serverUrl.trim(), name, pw);
+                            main.post(() -> onSignedIn(context, prefs, result));
+                        } catch (Exception e) {
+                            String message = e.getMessage() != null ? e.getMessage() : ErrorText.describeConnectionFailure(e);
+                            main.post(() -> Toast.makeText(context, message, Toast.LENGTH_LONG).show());
+                        }
+                    }).start();
+                })
+                .show();
+    }
+
+    private void onSignedIn(Context context, SharedPreferences prefs, EmbyLogin.Result result) {
+        if (!isAdded()) return;
+        if (result.administrator) {
+            new MaterialAlertDialogBuilder(context)
+                    .setTitle(result.userName + " is an administrator")
+                    .setMessage("The token of an administrator account has full control of your Emby server. "
+                            + "Create an ordinary user for this app instead, or use this one anyway.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Use anyway", (d, w) -> saveToken(context, prefs, result))
+                    .show();
+        } else {
+            saveToken(context, prefs, result);
+        }
+    }
+
+    private void saveToken(Context context, SharedPreferences prefs, EmbyLogin.Result result) {
+        prefs.edit().putString(SecurePrefs.KEY_EMBY_API, result.accessToken).apply();
+        maskSummary(SecurePrefs.KEY_EMBY_API); // refresh the "key is set" text
+        Toast.makeText(context, "Signed in as " + result.userName + ". The password was not stored.", Toast.LENGTH_LONG).show();
     }
 
     private void maskSummary(String key) {

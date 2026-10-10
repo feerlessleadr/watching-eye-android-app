@@ -110,8 +110,8 @@ public class MainViewModel extends ViewModel {
         repository.resetTime(user.getUserId(), (ok, message) -> tell(ok, ok ? message + " for " + user.getUsername() : message));
     }
 
-    public void stopStream(String sessionId) {
-        repository.stopStream(sessionId, (ok, message) -> tell(ok, message));
+    public void stopStream(LimitedUserStatus user, String sessionId) {
+        repository.stopStream(user.getUserId(), sessionId, (ok, message) -> tell(ok, message));
     }
 
     private boolean validMinutes(int minutes) {

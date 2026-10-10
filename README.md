@@ -14,11 +14,26 @@ versions still work, see "Compatibility").
 1. Install the Watching Eye plugin on your Emby server and add the users you want to limit.
 2. On the plugin page, open the **External API** tab: tick **Enable Public API**, click **Generate New Key** and **Save**.
    The app's actions (extra time, time-out, reset) use this API; status can be read with an Emby administrator key alone.
-3. In Emby (Dashboard -> API Keys) create an **administrator API key** for the app.
+3. In Emby create an ordinary (**non-administrator**) user just for the app, for example `watchingeye-app`. With plugin 1.9
+   or newer this is all the app needs from Emby, so losing the phone does not hand over the server. (With an older plugin you
+   still need an administrator API key from Dashboard -> API Keys; the app works but that key is powerful, so replace it
+   when you can.)
 4. In the app's **Settings** enter:
    - **Emby Server URL** - an `https://` address (this app blocks plain `http://`, see below)
-   - **Emby API Key** - the administrator key from step 3
+   - Tap **Sign in with a regular Emby account** and enter that user's name and password. The password is used once and
+     never stored; the app keeps only the resulting token (a warning appears if the account is an administrator).
    - **WatchingEye API Key** - the key from step 2
+
+### Protecting the app itself
+- **Screen lock:** by default the app asks for your phone's PIN, pattern or fingerprint before it opens (and before Settings),
+  because anyone who can open it can add time. Switch it off in Settings only if you accept that. It also hides the app from
+  screenshots and the recent-apps view. A phone without a screen lock cannot offer this.
+- **Notifications:** set Android to hide sensitive content on the lock screen (Settings -> Notifications); then the limit alert shows only "a viewing limit was reached", and names and the +15/+30/+60
+  buttons need an unlocked phone, and the buttons ask for the screen lock first.
+- **Storage:** settings are stored encrypted with a key held in the Android Keystore. If they cannot be read they are discarded
+  (you enter them again); the app never falls back to plain text.
+- **Widget:** Settings has an option to show "User 1, User 2" instead of names on the home-screen widget.
+- **Verify a download:** `gh attestation verify WatchingEye-v1.6.apk --repo feerlessleadr/watching-eye-android-app`
 
 ## What the app calls
 | Purpose | Request |
@@ -37,7 +52,7 @@ Emby writes request URLs (including `api_key=` values) to its log files.
 ## Compatibility with the plugin
 - Works with the original plugin 1.6.8.0 and with this fork. Fields added by newer plugin versions
   (`EffectiveDailyLimitMinutes`, `IsEnabled`) are optional; without them the app shows the plain daily limit.
-- Plugin **1.8 or newer** is needed for live push, Undo and the exact countdown; with an older plugin the app still works
+- Plugin **1.9 or newer** is needed for the regular-account sign-in and plugin-supplied now-playing; **1.8 or newer** for live push, Undo and the exact countdown; with an older plugin the app still works
   by asking the server every 20 s, shows the daily limit only, and Undo reports that the plugin is too old.
 - If you put a reverse proxy in front of Emby it must allow websockets, otherwise the app falls back to asking every 20 s.
 - **Alerts** (Settings, off by default) keep a connection open in the background (a permanent low-priority notification)
@@ -96,7 +111,7 @@ MIT, see [LICENSE](LICENSE). The app depends on open-source libraries (AndroidX,
 that keep their own licenses.
 
 ## Notes
-- Version 1.5 (versionCode 6; not released until a `v1.5` tag is pushed).
+- Version 1.6 (versionCode 7; released by pushing a `v1.6` tag).
 - The logo (a watchful owl with one clock eye and one real eye, under a night sky) is original artwork made for this app
   and covered by the MIT license like the rest of the repository. The master is `assets/logo/watching-eye-icon.svg`
   (a 512 px PNG sits next to it); the app's adaptive and themed icons are the vector drawables `ic_launcher_*` in `res/drawable`.

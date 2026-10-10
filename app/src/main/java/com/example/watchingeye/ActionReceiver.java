@@ -40,6 +40,9 @@ public class ActionReceiver extends BroadcastReceiver {
         final int minutes = intent.getIntExtra(EXTRA_MINUTES, 0);
         final int notificationId = intent.getIntExtra(EXTRA_NOTIFICATION_ID, 0);
         if (userId == null || minutes < 1 || minutes > ErrorText.MAX_MINUTES) return;
+        // Defence in depth: never add time while the phone is locked, whatever the notification showed.
+        android.app.KeyguardManager keyguard = (android.app.KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
+        if (keyguard != null && keyguard.isDeviceLocked()) return;
 
         final Context app = context.getApplicationContext();
         final PendingResult pending = goAsync();

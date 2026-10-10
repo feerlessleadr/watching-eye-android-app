@@ -133,8 +133,18 @@ public class AlertService extends Service {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setContentIntent(openAppIntent());
+        // On the lock screen only a generic notice is shown (no names, no buttons); the buttons also ask for the screen lock.
+        Notification lockScreenVersion = new NotificationCompat.Builder(this, CHANNEL_ALERTS)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setContentTitle("Watching Eye")
+                .setContentText("A viewing limit was reached. Unlock to see who.")
+                .build();
+        b.setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setPublicVersion(lockScreenVersion);
         for (int minutes : UserCardAdapter.QUICK_MINUTES) {
-            b.addAction(0, "+" + minutes + " min", ActionReceiver.addTimeIntent(this, user.getUserId(), name, minutes, id));
+            b.addAction(new NotificationCompat.Action.Builder(0, "+" + minutes + " min",
+                    ActionReceiver.addTimeIntent(this, user.getUserId(), name, minutes, id))
+                    .setAuthenticationRequired(true)
+                    .build());
         }
         getSystemService(NotificationManager.class).notify(id, b.build());
     }

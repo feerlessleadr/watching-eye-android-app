@@ -103,6 +103,7 @@ public final class StatusRepository implements LiveConnection.Listener {
     private EmbyApi embyApi;
     private ScheduledFuture<?> fallbackTask;
     private volatile long publicBlockedUntil = 0L;
+    private volatile boolean adminRouteDenied = false;
 
     private List<LimitedUserStatus> statuses = new ArrayList<>();
     private long statusAtMs = 0L;
@@ -132,6 +133,7 @@ public final class StatusRepository implements LiveConnection.Listener {
             weApi = WatchingEyeRetrofitClient.getService(creds.serverUrl, creds.pluginKey, creds.embyKey);
             embyApi = RetrofitClient.getInstance();
             publicBlockedUntil = 0L;
+            adminRouteDenied = false;
             statuses = new ArrayList<>();
             sessions = new ArrayList<>();
             everHadData = false;
@@ -177,13 +179,25 @@ public final class StatusRepository implements LiveConnection.Listener {
 
     @Override
     public void onStatus(List<LimitedUserStatus> users, long atMs) {
+        boolean askForSessions = false;
         synchronized (this) {
             statuses = users;
             statusAtMs = atMs;
             lastDataMs = atMs;
             everHadData = true;
+            // Only an older plugin (before 1.9) needs Emby's own session list to know what is playing.
+            askForSessions = needsEmbySessions(users);
         }
+        if (askForSessions) live.requestSessions();
         publish();
+    }
+
+    /** True when at least one user's row comes from a plugin that does not report now-playing itself. */
+    private static boolean needsEmbySessions(List<LimitedUserStatus> users) {
+        for (LimitedUserStatus user : users) {
+            if (!user.reportsNowPlaying()) return true;
+        }
+        return false;
     }
 
     @Override
@@ -216,22 +230,34 @@ public final class StatusRepository implements LiveConnection.Listener {
         if (we == null || emby == null) return;
         try {
             List<LimitedUserStatus> users = new ArrayList<>();
-            // The administrator route works with an Emby administrator key alone.
-            Response<List<LimitedUserStatus>> statusResp = we.getLimitedUsersStatus().execute();
-            if ((!statusResp.isSuccessful() || statusResp.body() == null) && System.currentTimeMillis() >= publicBlockedUntil) {
+            // The administrator route works with an Emby administrator key alone; a regular user's token is refused there
+            // (403), so after the first refusal the app goes straight to the key-protected public route.
+            Response<List<LimitedUserStatus>> statusResp = null;
+            if (!adminRouteDenied) {
+                statusResp = we.getLimitedUsersStatus().execute();
+                if (statusResp.code() == 403) adminRouteDenied = true;
+            }
+            if ((statusResp == null || !statusResp.isSuccessful() || statusResp.body() == null) && System.currentTimeMillis() >= publicBlockedUntil) {
                 Response<List<LimitedUserStatus>> publicResp = we.getStatus().execute();
                 if (publicResp.code() == 403) {
                     publicBlockedUntil = System.currentTimeMillis() + PUBLIC_BACKOFF_MS;
                 }
                 statusResp = publicResp;
             }
-            if (!statusResp.isSuccessful() || statusResp.body() == null) {
-                setRestProblem(ErrorText.describeFailure("Loading status", statusResp.code()));
+            if (statusResp == null || !statusResp.isSuccessful() || statusResp.body() == null) {
+                setRestProblem(ErrorText.describeFailure("Loading status", statusResp == null ? 403 : statusResp.code()));
                 return;
             }
             users = statusResp.body();
-            Response<List<SessionInfo>> sessionsResp = emby.getSessions("TranscodingInfo").execute();
-            List<SessionInfo> list = sessionsResp.isSuccessful() && sessionsResp.body() != null ? sessionsResp.body() : new ArrayList<>();
+            List<SessionInfo> list = new ArrayList<>();
+            if (needsEmbySessions(users)) {
+                try {
+                    Response<List<SessionInfo>> sessionsResp = emby.getSessions("TranscodingInfo").execute();
+                    if (sessionsResp.isSuccessful() && sessionsResp.body() != null) list = sessionsResp.body();
+                } catch (Exception ignored) {
+                    // an older plugin without now-playing: the list is a bonus, the status is what matters
+                }
+            }
             long now = System.currentTimeMillis();
             synchronized (this) {
                 // Do not overwrite fresher live data with this answer.
@@ -267,15 +293,24 @@ public final class StatusRepository implements LiveConnection.Listener {
         synchronized (this) {
             for (LimitedUserStatus user : statuses) {
                 SessionInfo match = null;
-                for (SessionInfo s : sessions) {
-                    if (s.getUserName() != null
-                            && s.getUserName().equalsIgnoreCase(user.getUsername())
-                            && s.getNowPlayingItem() != null) {
-                        match = s;
-                        break;
+                long sessionTime = sessionsAtMs;
+                if (user.reportsNowPlaying()) {
+                    // The plugin says what is playing (and it is as fresh as the status).
+                    if (user.getNowPlaying() != null) {
+                        match = SessionInfo.fromPlugin(user.getUserId(), user.getUsername(), user.getNowPlaying());
+                    }
+                    sessionTime = statusAtMs;
+                } else {
+                    for (SessionInfo s : sessions) {
+                        if (s.getUserName() != null
+                                && s.getUserName().equalsIgnoreCase(user.getUsername())
+                                && s.getNowPlayingItem() != null) {
+                            match = s;
+                            break;
+                        }
                     }
                 }
-                built.add(new UserCardInfo(user, match, statusAtMs, sessionsAtMs));
+                built.add(new UserCardInfo(user, match, statusAtMs, sessionTime));
             }
             info = computeConnection();
         }
@@ -350,8 +385,27 @@ public final class StatusRepository implements LiveConnection.Listener {
         });
     }
 
-    public void stopStream(String sessionId, ResultCallback cb) {
-        runAction("Stop stream", cb, () -> embyApi().stopStream(sessionId).execute(), "Stream stopped");
+    /**
+     * Stops what a user is playing. Plugin 1.9+ does it for the user (so a regular Emby account is enough); an older plugin
+     * answers 404 and the app falls back to Emby's own stop command, which needs an administrator key.
+     */
+    public void stopStream(String userId, String sessionId, ResultCallback cb) {
+        actionExecutor.execute(() -> {
+            try {
+                Response<?> resp = weApi().stopStream(new UserIdRequest(userId)).execute();
+                if ((resp.code() == 404 || resp.code() == 405) && sessionId != null) {
+                    resp = embyApi().stopStream(sessionId).execute();
+                }
+                if (resp.isSuccessful()) {
+                    afterAction();
+                    report(cb, true, "Stream stopped");
+                } else {
+                    report(cb, false, ErrorText.describeFailure("Stop stream", resp.code()));
+                }
+            } catch (Exception e) {
+                report(cb, false, "Stop stream failed. " + ErrorText.describeConnectionFailure(e));
+            }
+        });
     }
 
     private interface Call {

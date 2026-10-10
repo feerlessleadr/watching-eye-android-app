@@ -33,7 +33,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-public class MainActivity extends AppCompatActivity implements UserCardAdapter.Listener {
+public class MainActivity extends LockedActivity implements UserCardAdapter.Listener {
 
     private static final long TICK_MS = 1000L;
 
@@ -116,8 +116,13 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
 
     /** Live data only flows while the screen is visible: on the way in connect afresh, on the way out hang up. */
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onUnlocked() {
+        if (SecurePrefs.takeWasReset()) {
+            Toast.makeText(this, "The saved settings could not be read and were cleared. Please enter them again.", Toast.LENGTH_LONG).show();
+        }
+        if (SecurePrefs.isUnavailable()) {
+            Toast.makeText(this, "Secure storage is not available on this phone, so settings are kept only until the app closes.", Toast.LENGTH_LONG).show();
+        }
         applyCredentialsAndStart();
         registerNetworkCallback();
         handler.removeCallbacks(ticker);
@@ -140,6 +145,12 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
 
         if (serverUrl.isEmpty() || embyKey.isEmpty() || weKey.isEmpty()) {
             Toast.makeText(this, "Please configure server settings", Toast.LENGTH_LONG).show();
+            startActivity(new Intent(this, SettingsActivity.class));
+            return;
+        }
+
+        if (!ServerUrl.isValid(serverUrl)) {
+            Toast.makeText(this, "The server address is not valid. It must look like https://emby.example.com", Toast.LENGTH_LONG).show();
             startActivity(new Intent(this, SettingsActivity.class));
             return;
         }
@@ -303,7 +314,7 @@ public class MainActivity extends AppCompatActivity implements UserCardAdapter.L
                 .setTitle("Stop " + user.getUsername() + "'s stream?")
                 .setMessage("This stops \"" + title + "\" now. It does not block them from starting it again.")
                 .setNegativeButton("Cancel", null)
-                .setPositiveButton("Stop", (d, w) -> viewModel.stopStream(session.getId()))
+                .setPositiveButton("Stop", (d, w) -> viewModel.stopStream(user, session.getId()))
                 .show();
     }
 

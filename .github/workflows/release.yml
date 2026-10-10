@@ -19,8 +19,13 @@ jobs:
   release:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # The signing secrets can be moved into this GitHub "Environment" and limited to the tags v* (Settings -> Environments ->
+    # release), so that no other branch or workflow run can ever use them. Until then the repository secrets work as before.
+    environment: release
     permissions:
       contents: write # only needed to create the GitHub Release
+      id-token: write # lets the build prove where the APK came from (see the attest step)
+      attestations: write
     env:
       # Public fingerprint of the certificate that signed the installed app. The build fails if the APK is signed by
       # anything else, because such an APK could not be installed over the existing app.
@@ -99,6 +104,14 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/${name}.apk"
           (cd dist && sha256sum "${name}.apk" > "${name}.apk.sha256")
           cat "dist/${name}.apk.sha256"
+
+      - name: Attest where the APK came from
+        # Signed proof that this exact file was built from this repository by this workflow. Verify a download with:
+        #   gh attestation verify WatchingEye-v1.6.apk --repo feerlessleadr/watching-eye-android-app
+        if: github.ref_type == 'tag'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.apk
 
       - name: Publish the GitHub Release
         if: github.ref_type == 'tag'

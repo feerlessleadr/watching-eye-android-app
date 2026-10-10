@@ -10,7 +10,12 @@ public final class WidgetText {
     private WidgetText() {}
 
     public static String row(LimitedUserStatus user, Instant now, ZoneId zone, Locale locale) {
-        String name = user.getUsername() != null ? user.getUsername() : "Unknown";
+        return row(user, now, zone, locale, null);
+    }
+
+    /** With a non-null label the user is shown under that label ("User 1") instead of by name. */
+    public static String row(LimitedUserStatus user, Instant now, ZoneId zone, Locale locale, String hiddenLabel) {
+        String name = hiddenLabel != null ? hiddenLabel : (user.getUsername() != null ? user.getUsername() : "Unknown");
         if (!user.isEnabled()) {
             return name + " — limit off";
         }

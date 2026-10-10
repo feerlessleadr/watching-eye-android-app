@@ -34,6 +34,21 @@ public class SessionInfo {
     @SerializedName("TranscodingInfo")
     private TranscodingInfo transcodingInfo;
 
+    public SessionInfo() {}
+
+    /** A session built from what the plugin (1.9+) reports, so the rest of the app treats both sources the same way. */
+    static SessionInfo fromPlugin(String userId, String userName, PluginNowPlaying np) {
+        SessionInfo s = new SessionInfo();
+        s.id = np.getSessionId();
+        s.userId = userId;
+        s.userName = userName;
+        s.client = np.getClient();
+        s.deviceName = np.getDeviceName();
+        s.nowPlayingItem = new NowPlayingItem(np.getItemId(), np.getItemName(), np.getItemType(), np.getRunTimeTicks());
+        s.playState = new PlayState(np.getPositionTicks(), np.isPaused());
+        return s;
+    }
+
     public String getId() { return id; }
     public String getUserId() { return userId; }
     public String getUserName() { return userName; }

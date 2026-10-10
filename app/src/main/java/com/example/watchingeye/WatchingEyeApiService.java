@@ -40,4 +40,8 @@ public interface WatchingEyeApiService {
 
     @POST("/WatchingEye/Public/ResetUserTime")
     Call<Void> resetUserTime(@Body UserIdRequest request);
+
+    /** Stops whatever the user is playing (plugin 1.9+; older plugins answer 404). */
+    @POST("/WatchingEye/Public/StopStream")
+    Call<Void> stopStream(@Body UserIdRequest request);
 }

@@ -62,6 +62,18 @@ final class LiveConnection {
         this.listener = listener;
     }
 
+    private boolean sessionsWanted = false;
+
+    /**
+     * Also subscribe to Emby's own session list. Only needed with an older plugin (before 1.9) that does not report what is
+     * playing; with a newer one the app never asks Emby for sessions, so a regular Emby account is enough.
+     */
+    synchronized void requestSessions() {
+        if (sessionsWanted) return;
+        sessionsWanted = true;
+        if (socket != null) socket.send(LiveMessages.subscribeSessions());
+    }
+
     synchronized State getState() {
         return state;
     }
@@ -117,7 +129,7 @@ final class LiveConnection {
                 synchronized (LiveConnection.this) {
                     if (gen != generation) return;
                     webSocket.send(LiveMessages.subscribeStatus(pluginKey));
-                    webSocket.send(LiveMessages.subscribeSessions());
+                    if (sessionsWanted) webSocket.send(LiveMessages.subscribeSessions());
                     startWatchdog(gen);
                 }
             }
