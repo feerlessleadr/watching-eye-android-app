@@ -68,7 +68,7 @@ dependencies {
     implementation 'com.github.bumptech.glide:glide:4.16.0'
 
     // Encrypted SharedPreferences
-    implementation 'androidx.security:security-crypto:1.1.0-alpha06'
+    implementation 'androidx.security:security-crypto:1.1.0'
 
     implementation 'androidx.lifecycle:lifecycle-viewmodel:2.8.4'
     implementation 'androidx.lifecycle:lifecycle-livedata:2.8.4'
