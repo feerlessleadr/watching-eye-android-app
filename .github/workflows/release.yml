@@ -105,7 +105,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" dist/* --title "Watching Eye ${GITHUB_REF_NAME}" --generate-notes
+          # Safe to re-run: if a release for this tag already exists, leave it alone instead of failing.
+          if gh release view "${GITHUB_REF_NAME}" > /dev/null 2>&1; then
+            echo "A release for ${GITHUB_REF_NAME} already exists; not creating another one."
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/* --title "Watching Eye ${GITHUB_REF_NAME}" --generate-notes
+          fi
 
       - name: Keep the APK as a workflow artifact (manual dry runs)
         if: github.ref_type != 'tag'

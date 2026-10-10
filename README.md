@@ -80,7 +80,11 @@ app can never be updated.
 An APK signed with a different key cannot be installed over an existing install (uninstall first, which clears the saved
 settings). Never commit keystores or `local.properties`.
 
+## License
+MIT, see [LICENSE](LICENSE). The app depends on open-source libraries (AndroidX, Retrofit, OkHttp, Gson, Glide, ...)
+that keep their own licenses.
+
 ## Notes
 - Version 1.4 (versionCode 5).
 - This repository previously contained a full decompiled export (`export.zip`) and extracted build artifacts; they were
-  removed (still in git history). The sources under `app/src/main/java/com/example/watchingeye` are the app.
+  removed from the code and from the git history. The sources under `app/src/main/java/com/example/watchingeye` are the app.
